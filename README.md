@@ -1,69 +1,60 @@
 # DNS-as-DoH
 
-### A DNS tunnel that uses plain DNS queries as transport to bypass DoH/DoT filtering.
-
-> **Note:** This is probably a stupid idea, but I enjoyed implementing it.
-
-DNS-as-DoH allows users in countries where DoH/DoT is blocked to access encrypted DNS resolution through a tunnel. It's a simple, lightweight, and surprisingly effective way to bypass DNS filtering.
+> **⚠️ Disclaimer**: I know this is a somewhat stupid idea - using DNS to tunnel DNS queries. It's not the most practical solution, but I wanted to implement it anyway to explore the concept.
 
 ---
 
-## 🚀 Features
+A DNS tunnel that uses plain DNS queries as transport to bypass DoH/DoT filtering. This allows users in countries where DoH/DoT is blocked to access encrypted DNS resolution through a tunnel.
 
-- **Simple & Lightweight:** No complex protocols, just plain DNS request/response.
-- **High Performance:** Parallel resolvers for low latency and high availability.
-- **Strong Encryption:** ChaCha20-Poly1305 with HKDF for secure communication.
-- **Anti-Fingerprinting:** Techniques to evade detection by DPI.
-- **Cross-Platform:** Works on Windows, Linux, and macOS.
-- **Easy to Install:** Can be installed as a system service.
+## 🎯 What This Does
 
----
+Instead of directly using DoH/DoT (which may be blocked), this project:
+1. **Intercepts** your DNS queries locally
+2. **Encrypts** them with ChaCha20-Poly1305
+3. **Encodes** them into DNS query names
+4. **Sends** them via plain UDP DNS to public resolvers
+5. **Routes** them to your tunnel server
+6. **Decrypts** and resolves the actual DNS query
+7. **Returns** the encrypted response back through the same path
 
-## Diagram
+Yes, it's DNS-over-DNS-over-DNS. Yes, it's recursive. Yes, I know it's a bit silly. But it works!
 
-The diagram below shows how DNS-as-DoH works.
+### Data Flow
 
+1. **System App** → **Client**: Standard DNS query (UDP port 53)
+2. **Client** → **Public Resolver**: Encoded/encrypted DNS query (UDP DNS)
+3. **Public Resolver** → **Server**: Forwarded DNS query (UDP DNS)
+4. **Server** → **Real DNS**: Actual DNS resolution (DNS/DoH/DoT)
+5. **Server** → **Public Resolver**: Encoded/encrypted DNS response
+6. **Public Resolver** → **Client**: Forwarded DNS response
+7. **Client** → **System App**: Decoded DNS response
+
+## 🚀 Quick Start
+
+### One-Click Installation
+
+**For Linux (Client or Server):**
+```bash
+sudo bash <(curl -Ls https://raw.githubusercontent.com/AliRezaBeigy/dns-as-doh/master/scripts/deploy.sh)
 ```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐         ┌─────────────┐
-│   System    │  DNS    │    Client    │  DNS    │   Public    │  DNS    │   Server    │
-│   Apps      │────────>│  (Resolver)  │────────>│  Resolver   │────────>│(Authoritative)│
-│             │         │              │         │ (UDP DNS)   │         │             │
-└─────────────┘         └──────────────┘         └─────────────┘         └─────────────┘
-                                                                               │
-                                                                               │ DNS/DoH/DoT
-                                                                               ▼
-                                                                         ┌─────────────┐
-                                                                         │    Real     │
-                                                                         │    DNS      │
-                                                                         │   Servers   │
-                                                                         └─────────────┘
-```
 
----
+### Manual Installation
 
-## 🛠️ How It Works
+#### Prerequisites
 
-1.  **Intercept:** The client intercepts DNS queries from your system.
-2.  **Encrypt & Encode:** The client encrypts the query and encodes it into a DNS name (e.g., `<encoded-query>.t.example.com`).
-3.  **Resolve:** The client sends the encoded query to a public DNS resolver (like 8.8.8.8).
-4.  **Forward:** The public resolver forwards the query to your authoritative server.
-5.  **Decode & Decrypt:** The server decodes and decrypts the query.
-6.  **Resolve Real Query:** The server resolves the real DNS query (e.g., `google.com`) using an upstream resolver.
-7.  **Encrypt & Encode Response:** The server encrypts the response and encodes it into a TXT record.
-8.  **Return:** The response is returned to the client through the same path.
-
----
-
-## 🏁 Quick Start
+- Go 1.24 or later
+- A domain name with DNS control
+- A server with a public IP address
 
 ### 1. Generate Encryption Key
 
 ```bash
 # On either client or server
 ./dns-as-doh-client -gen-key
-# or
 ./dns-as-doh-server -gen-key
 ```
+
+Save the generated key securely - you'll need it on both client and server.
 
 ### 2. DNS Zone Setup
 
@@ -75,11 +66,25 @@ AAAA  tns.example.com    → <server-ipv6>  (optional)
 NS    t.example.com      → tns.example.com
 ```
 
-- Replace `example.com` with your domain.
-- Replace `<server-ip>` with your server's IP address.
-- `t` can be any short subdomain.
+Replace:
+- `example.com` with your domain
+- `<server-ip>` with your server's IP address
+- `t` can be any short subdomain
 
-### 3. Start the Server
+### 3. Build the Project
+
+```bash
+# Build for current platform
+./scripts/build.sh
+
+# Or on Windows
+.\scripts\build.ps1
+
+# Build for all platforms
+./scripts/build.sh all
+```
+
+### 4. Start the Server
 
 ```bash
 ./dns-as-doh-server \
@@ -89,7 +94,7 @@ NS    t.example.com      → tns.example.com
     -listen :53
 ```
 
-### 4. Start the Client
+### 5. Start the Client
 
 ```bash
 ./dns-as-doh-client \
@@ -99,61 +104,29 @@ NS    t.example.com      → tns.example.com
     -listen 127.0.0.1:53
 ```
 
-### 5. Configure System DNS
+### 6. Configure System DNS
 
-Set your system's DNS to `127.0.0.1`.
+Point your system's DNS to `127.0.0.1` to use the tunnel.
 
----
+## 📖 Usage
 
-## 📦 Installation
-
-### Build from Source
-
-```bash
-# Build for the current platform
-./build.sh
-
-# Or on Windows
-./build.ps1
-```
-
-### Install as a Service
-
-#### Linux (systemd)
-
-```bash
-sudo ./install.sh install-client ./dist/dns-as-doh-client t.example.com <key>
-```
-
-#### Windows
-
-```powershell
-# Run as Administrator
-.
-```
-
----
-
-## ⚙️ Command Reference
-
-<details>
-<summary>Client Options</summary>
+### Client Options
 
 ```
-Usage:
-  dns-as-doh-client [options]
+Usage: dns-as-doh-client [options]
 
 Options:
-  -listen string
-        Address to listen for DNS queries (default "127.0.0.1:53")
   -domain string
         Server domain (e.g., t.example.com) (required)
-  -resolvers string
-        Comma-separated list of public DNS resolvers (default "8.8.8.8:53,1.1.1.1:53,9.9.9.9:53")
   -key string
         Encryption key (64 hex characters)
   -key-file string
         File containing the encryption key
+  -listen string
+        Address to listen for DNS queries (default "127.0.0.1:53")
+  -resolvers string
+        Comma-separated list of public DNS resolvers
+        (default "8.8.8.8:53,1.1.1.1:53,9.9.9.9:53")
   -timeout duration
         Query timeout (default 2s)
   -gen-key
@@ -165,30 +138,28 @@ Options:
   -version
         Show version information
 ```
-</details>
 
-<details>
-<summary>Server Options</summary>
+### Server Options
 
 ```
-Usage:
-  dns-as-doh-server [options]
+Usage: dns-as-doh-server [options]
 
 Options:
-  -listen string
-        Address to listen for DNS queries (default ":53")
   -domain string
         Domain this server is authoritative for (required)
-  -upstream string
-        Upstream DNS resolver (default "8.8.8.8:53")
-        Formats:
-          UDP DNS: 8.8.8.8:53
-          DoH: https://dns.google/dns-query
-          DoT: dns.google:853
   -key string
         Encryption key (64 hex characters)
   -key-file string
         File containing the encryption key
+  -listen string
+        Address to listen for DNS queries (default ":53")
+  -upstream string
+        Upstream DNS resolver
+        Formats:
+          UDP DNS: 8.8.8.8:53
+          DoH: https://dns.google/dns-query
+          DoT: dns.google:853
+        (default "8.8.8.8:53")
   -mtu int
         Maximum UDP payload size (default 1232)
   -ttl uint
@@ -204,33 +175,122 @@ Options:
   -version
         Show version information
 ```
-</details>
 
----
+## 🔧 Installation
 
-## 🛡️ Security
+### Linux (systemd)
 
-- **Encryption:** ChaCha20-Poly1305 (AEAD)
-- **Key Derivation:** HKDF-SHA256
-- **Replay Protection:** Timestamp-based with a 5-minute window.
-- **Anti-Fingerprinting:** Random padding, timing randomization, and query variation.
+**One-click installation:**
+```bash
+sudo bash <(curl -Ls https://raw.githubusercontent.com/AliRezaBeigy/dns-as-doh/master/scripts/deploy.sh)
+```
 
----
+**Manual installation:**
+```bash
+# Build the binaries
+./scripts/build.sh
 
-## 🆚 Comparison with dnstt
+# Install client
+sudo ./scripts/install.sh install-client ./dist/dns-as-doh-client t.example.com <key>
 
-| Feature      | DNS-as-DoH          | dnstt               |
-|--------------|---------------------|---------------------|
-| **Protocol** | Simple req/resp     | KCP + smux          |
-| **Use Case** | DNS-only tunneling  | General TCP tunneling |
-| **Complexity** | Low                 | High                |
+# Install server
+sudo ./scripts/install.sh install-server ./dist/dns-as-doh-server t.example.com <key>
 
----
+# Or manually
+sudo cp dist/dns-as-doh-client /usr/local/bin/
+sudo cp install/dns-as-doh-client.service /etc/systemd/system/
+# Edit the service file with your configuration
+sudo systemctl enable dns-as-doh-client
+sudo systemctl start dns-as-doh-client
+```
+
+### Windows
+
+```powershell
+# Run as Administrator
+.\dns-as-doh-client.exe -install -domain t.example.com -key <your-key>
+
+# Start the service
+net start dns-as-doh-client
+```
+
+## 🔐 Security
+
+### Encryption
+
+- **Algorithm**: ChaCha20-Poly1305 (AEAD)
+- **Key Derivation**: HKDF-SHA256 with context separation
+- **Nonce Format**: 12 bytes (8-byte counter + 4-byte random)
+- **Replay Protection**: Timestamp-based (5-minute window)
+
+### Anti-Fingerprinting
+
+- Random padding (3-8 bytes per query)
+- Variable query sizes
+- Random DNS query IDs
+- Random UDP source ports
+- Query timing randomization (0-50ms delays)
+- Realistic TTL values (60-300 seconds)
+- Realistic response delays (10-100ms)
+
+## ⚡ Performance
+
+### Parallel Resolvers
+
+The client sends queries to multiple resolvers simultaneously and uses the first valid response. This provides:
+
+- **Lower Latency**: Uses the fastest resolver (30-50% improvement)
+- **Redundancy**: If one resolver fails, others can still respond
+- **Resilience**: Works even if some resolvers are blocked/slow
+
+Configure multiple resolvers:
+```bash
+-resolvers 8.8.8.8:53,1.1.1.1:53,9.9.9.9:53,208.67.222.222:53
+```
+
+## ⚠️ Limitations
+
+1. **DNS Query Size Limits**: Maximum ~200 bytes per query (after encoding), limits throughput
+2. **Latency**: Multiple DNS hops add latency (50-200ms typical)
+   - **Mitigation**: Parallel resolver queries reduce latency by using fastest resolver
+3. **Reliability**: DNS is UDP-based, no guaranteed delivery (DNS handles retries)
+   - **Mitigation**: Parallel resolvers provide redundancy
+4. **Throughput**: Limited by DNS query/response rate (typically 10-100 queries/second)
+5. **Detection Risk**: Advanced DPI may still detect patterns despite mitigations
+6. **Bandwidth**: Parallel resolvers increase bandwidth usage (trade-off for speed)
+
+See [tests/README.md](tests/README.md) for more information.
+
+## 🐛 Troubleshooting
+
+### Client Not Resolving
+
+1. Check if the client is running: `systemctl status dns-as-doh-client`
+2. Check logs: `journalctl -u dns-as-doh-client`
+3. Verify DNS is pointing to 127.0.0.1
+4. Test with: `dig @127.0.0.1 example.com`
+
+### Server Not Receiving Queries
+
+1. Check if port 53 is open: `sudo ss -ulnp | grep 53`
+2. Check firewall rules: `sudo iptables -L -n | grep 53`
+3. Verify DNS zone configuration
+4. Test NS record: `dig NS t.example.com`
+
+### Encryption Key Issues
+
+- Key must be exactly 64 hex characters (32 bytes)
+- Same key must be used on both client and server
+- Store keys securely (use `-key-file` for production)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please open an issue or pull request.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📜 License
+## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License - see LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Inspired by [dnstt](https://github.com/Mygod/dnstt) but simplified for DNS-only use
