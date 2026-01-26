@@ -1,0 +1,23 @@
+[Unit]
+Description=DNS-as-DoH Server
+After=network.target
+
+[Service]
+Type=simple
+# Modify the following line with your configuration:
+# ExecStart=/usr/local/bin/dns-as-doh-server -domain t.example.com -key <your-key> -upstream 8.8.8.8:53
+ExecStart=/usr/local/bin/dns-as-doh-server -domain DOMAIN -key-file /etc/dns-as-doh/server.key -upstream 8.8.8.8:53 -listen :53
+Restart=on-failure
+RestartSec=5
+User=root
+Group=root
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target
