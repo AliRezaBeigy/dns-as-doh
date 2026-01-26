@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/user/dns-as-doh/internal/crypto"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/crypto"
 )
 
 // Security provides rate limiting and replay detection.

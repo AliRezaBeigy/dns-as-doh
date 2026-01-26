@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/user/dns-as-doh/internal/dns"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/dns"
 )
 
 // Transport handles UDP DNS communication with parallel resolver support.

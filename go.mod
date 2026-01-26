@@ -1,6 +1,6 @@
-module github.com/user/dns-as-doh
+module github.com/AliRezaBeigy/dns-as-doh
 
-go 1.21
+go 1.24
 
 require (
 	golang.org/x/crypto v0.17.0

@@ -168,7 +168,7 @@ func VaryTTL(baseTTL uint32) uint32 {
 	rand.Read(buf[:])
 
 	// Vary by ±20%
-	variance := uint32(buf[0]<<8|buf[1]) % (baseTTL / 5)
+	variance := (uint32(buf[0])<<8 | uint32(buf[1])) % (baseTTL / 5)
 	if buf[0]&1 == 0 {
 		return baseTTL + variance
 	}

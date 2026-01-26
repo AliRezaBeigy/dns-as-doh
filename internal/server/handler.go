@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/user/dns-as-doh/internal/crypto"
-	"github.com/user/dns-as-doh/internal/dns"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/crypto"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/dns"
 )
 
 // Config holds the server configuration.

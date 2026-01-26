@@ -1,8 +1,27 @@
 # DNS-as-DoH
 
-A DNS tunnel that uses plain DNS queries as transport to bypass DoH/DoT filtering. This allows users in countries where DoH/DoT is blocked to access encrypted DNS resolution through a tunnel.
+### A DNS tunnel that uses plain DNS queries as transport to bypass DoH/DoT filtering.
 
-## How It Works
+> **Note:** This is probably a stupid idea, but I enjoyed implementing it.
+
+DNS-as-DoH allows users in countries where DoH/DoT is blocked to access encrypted DNS resolution through a tunnel. It's a simple, lightweight, and surprisingly effective way to bypass DNS filtering.
+
+---
+
+## 🚀 Features
+
+- **Simple & Lightweight:** No complex protocols, just plain DNS request/response.
+- **High Performance:** Parallel resolvers for low latency and high availability.
+- **Strong Encryption:** ChaCha20-Poly1305 with HKDF for secure communication.
+- **Anti-Fingerprinting:** Techniques to evade detection by DPI.
+- **Cross-Platform:** Works on Windows, Linux, and macOS.
+- **Easy to Install:** Can be installed as a system service.
+
+---
+
+## Diagram
+
+The diagram below shows how DNS-as-DoH works.
 
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐         ┌─────────────┐
@@ -20,25 +39,22 @@ A DNS tunnel that uses plain DNS queries as transport to bypass DoH/DoT filterin
                                                                          └─────────────┘
 ```
 
-1. Client intercepts DNS queries from system applications
-2. Client encrypts and encodes queries into DNS names
-3. Client sends encoded queries via plain UDP DNS to public resolvers
-4. Public resolver forwards to your authoritative server
-5. Server decodes, decrypts, and performs real DNS resolution
-6. Server encrypts response and encodes into DNS TXT record
-7. Response travels back through the same path
+---
 
-## Features
+## 🛠️ How It Works
 
-- **Simple Architecture**: No KCP, smux, or complex protocols - just DNS request/response
-- **Parallel Resolvers**: Send queries to multiple DNS resolvers simultaneously, use fastest response
-- **Strong Encryption**: ChaCha20-Poly1305 with HKDF key derivation
-- **Anti-Fingerprinting**: Random padding, timing randomization, query variation
-- **Replay Protection**: Timestamp-based replay detection
-- **Cross-Platform**: Works on Windows, Linux, and macOS
-- **Easy Installation**: Install as system service on Windows and Linux
+1.  **Intercept:** The client intercepts DNS queries from your system.
+2.  **Encrypt & Encode:** The client encrypts the query and encodes it into a DNS name (e.g., `<encoded-query>.t.example.com`).
+3.  **Resolve:** The client sends the encoded query to a public DNS resolver (like 8.8.8.8).
+4.  **Forward:** The public resolver forwards the query to your authoritative server.
+5.  **Decode & Decrypt:** The server decodes and decrypts the query.
+6.  **Resolve Real Query:** The server resolves the real DNS query (e.g., `google.com`) using an upstream resolver.
+7.  **Encrypt & Encode Response:** The server encrypts the response and encodes it into a TXT record.
+8.  **Return:** The response is returned to the client through the same path.
 
-## Quick Start
+---
+
+## 🏁 Quick Start
 
 ### 1. Generate Encryption Key
 
@@ -48,8 +64,6 @@ A DNS tunnel that uses plain DNS queries as transport to bypass DoH/DoT filterin
 # or
 ./dns-as-doh-server -gen-key
 ```
-
-Save the generated key securely - you'll need it on both client and server.
 
 ### 2. DNS Zone Setup
 
@@ -61,10 +75,9 @@ AAAA  tns.example.com    → <server-ipv6>  (optional)
 NS    t.example.com      → tns.example.com
 ```
 
-Replace:
-- `example.com` with your domain
-- `<server-ip>` with your server's IP address
-- `t` can be any short subdomain
+- Replace `example.com` with your domain.
+- Replace `<server-ip>` with your server's IP address.
+- `t` can be any short subdomain.
 
 ### 3. Start the Server
 
@@ -88,60 +101,43 @@ Replace:
 
 ### 5. Configure System DNS
 
-Point your system's DNS to `127.0.0.1` to use the tunnel.
+Set your system's DNS to `127.0.0.1`.
 
-## Installation
+---
 
-### Building from Source
+## 📦 Installation
+
+### Build from Source
 
 ```bash
-# Build for current platform
+# Build for the current platform
 ./build.sh
 
-# Build for all platforms
-./build.sh all
-
-# Build for specific platform
-./build.sh linux
-./build.sh windows
+# Or on Windows
+./build.ps1
 ```
 
-On Windows:
-```powershell
-.\build.ps1
-.\build.ps1 -Target all
-```
-
-### Installing as Service
+### Install as a Service
 
 #### Linux (systemd)
 
 ```bash
-# Using the install script
-sudo ./install.sh generate-key
 sudo ./install.sh install-client ./dist/dns-as-doh-client t.example.com <key>
-
-# Or manually
-sudo cp dist/dns-as-doh-client /usr/local/bin/
-sudo cp install/dns-as-doh-client.service /etc/systemd/system/
-# Edit the service file with your configuration
-sudo systemctl enable dns-as-doh-client
-sudo systemctl start dns-as-doh-client
 ```
 
 #### Windows
 
 ```powershell
 # Run as Administrator
-.\dns-as-doh-client.exe -install -domain t.example.com -key <your-key>
-
-# Start the service
-net start dns-as-doh-client
+.
 ```
 
-## Command Reference
+---
 
-### Client Options
+## ⚙️ Command Reference
+
+<details>
+<summary>Client Options</summary>
 
 ```
 Usage:
@@ -169,8 +165,10 @@ Options:
   -version
         Show version information
 ```
+</details>
 
-### Server Options
+<details>
+<summary>Server Options</summary>
 
 ```
 Usage:
@@ -206,86 +204,33 @@ Options:
   -version
         Show version information
 ```
+</details>
 
-## Security Considerations
+---
 
-### Encryption
+## 🛡️ Security
 
-- Uses ChaCha20-Poly1305 (AEAD) for encryption
-- Keys derived using HKDF-SHA256 with context separation
-- 12-byte nonces (8-byte counter + 4-byte random)
-- Timestamps for replay protection (5-minute window)
+- **Encryption:** ChaCha20-Poly1305 (AEAD)
+- **Key Derivation:** HKDF-SHA256
+- **Replay Protection:** Timestamp-based with a 5-minute window.
+- **Anti-Fingerprinting:** Random padding, timing randomization, and query variation.
 
-### Anti-Fingerprinting
+---
 
-- Random padding (3-8 bytes per query)
-- Variable query sizes
-- Random DNS query IDs
-- Random UDP source ports
-- Query timing randomization (0-50ms delays)
-- Realistic TTL values (60-300 seconds)
-- Realistic response delays (10-100ms)
+## 🆚 Comparison with dnstt
 
-### Limitations
+| Feature      | DNS-as-DoH          | dnstt               |
+|--------------|---------------------|---------------------|
+| **Protocol** | Simple req/resp     | KCP + smux          |
+| **Use Case** | DNS-only tunneling  | General TCP tunneling |
+| **Complexity** | Low                 | High                |
 
-- DNS query size limits (~200 bytes payload)
-- Higher latency than direct DNS (50-200ms typical)
-- Throughput limited by DNS query rate
-- Advanced DPI may detect patterns despite mitigations
+---
 
-## Performance
+## 🤝 Contributing
 
-### Parallel Resolvers
+Contributions are welcome! Please open an issue or pull request.
 
-The client sends queries to multiple resolvers simultaneously and uses the first valid response. This provides:
+## 📜 License
 
-- **Lower Latency**: Uses the fastest resolver (30-50% improvement)
-- **Redundancy**: If one resolver fails, others can respond
-- **Resilience**: Works even if some resolvers are blocked
-
-Configure multiple resolvers:
-```bash
--resolvers 8.8.8.8:53,1.1.1.1:53,9.9.9.9:53,208.67.222.222:53
-```
-
-## Troubleshooting
-
-### Client Not Resolving
-
-1. Check if the client is running: `systemctl status dns-as-doh-client`
-2. Check logs: `journalctl -u dns-as-doh-client`
-3. Verify DNS is pointing to 127.0.0.1
-4. Test with: `dig @127.0.0.1 example.com`
-
-### Server Not Receiving Queries
-
-1. Check if port 53 is open: `sudo ss -ulnp | grep 53`
-2. Check firewall rules: `sudo iptables -L -n | grep 53`
-3. Verify DNS zone configuration
-4. Test NS record: `dig NS t.example.com`
-
-### Encryption Key Issues
-
-- Key must be exactly 64 hex characters (32 bytes)
-- Same key must be used on both client and server
-- Store keys securely (use `-key-file` for production)
-
-## Comparison with dnstt
-
-| Feature | DNS-as-DoH | dnstt |
-|---------|-----------|-------|
-| Protocol | Simple request/response | KCP + smux |
-| Encryption | ChaCha20-Poly1305 | Noise Protocol |
-| Use Case | DNS-only tunneling | General TCP tunneling |
-| Complexity | Low | High |
-| Reliability | DNS handles retries | KCP handles retries |
-
-DNS-as-DoH is specifically designed for DNS resolution tunneling, making it simpler than dnstt which supports general TCP tunneling.
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or pull request on GitHub.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

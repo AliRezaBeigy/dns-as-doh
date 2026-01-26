@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/user/dns-as-doh/internal/crypto"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/crypto"
 )
 
 // ServerCrypto wraps the crypto package for server-specific usage.

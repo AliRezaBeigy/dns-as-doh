@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/user/dns-as-doh/internal/dns"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/dns"
 )
 
 // ResolverType represents the type of upstream resolver.

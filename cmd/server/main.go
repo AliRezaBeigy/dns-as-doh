@@ -13,9 +13,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/user/dns-as-doh/internal/crypto"
-	"github.com/user/dns-as-doh/internal/server"
-	"github.com/user/dns-as-doh/pkg/service"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/crypto"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/server"
+	"github.com/AliRezaBeigy/dns-as-doh/pkg/service"
 )
 
 var (

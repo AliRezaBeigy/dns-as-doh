@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/user/dns-as-doh/internal/crypto"
-	"github.com/user/dns-as-doh/internal/dns"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/crypto"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/dns"
 )
 
 // Config holds the client configuration.
@@ -131,6 +131,11 @@ func (r *Resolver) Stop() {
 	}
 	r.transport.Close()
 	r.wg.Wait()
+}
+
+// ListenAddr returns the address the resolver is listening on.
+func (r *Resolver) ListenAddr() string {
+	return r.config.ListenAddr
 }
 
 // acceptLoop accepts incoming DNS queries.

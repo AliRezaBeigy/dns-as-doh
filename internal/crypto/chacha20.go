@@ -1,7 +1,8 @@
-+// Package crypto provides encryption utilities for the DNS tunnel.
+// Package crypto provides encryption utilities for the DNS tunnel.
 package crypto
 
 import (
+	"crypto/hkdf"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/chacha20poly1305"
-	"golang.org/x/crypto/hkdf"
 )
 
 // Constants
@@ -92,9 +92,8 @@ func NewCipher(sharedSecret []byte, isClient bool) (*Cipher, error) {
 
 // deriveKey derives a key from the shared secret using HKDF-SHA256.
 func deriveKey(secret []byte, context string) ([]byte, error) {
-	reader := hkdf.New(sha256.New, secret, nil, []byte(context))
-	key := make([]byte, KeySize)
-	if _, err := io.ReadFull(reader, key); err != nil {
+	key, err := hkdf.Key(sha256.New, secret, nil, context, KeySize)
+	if err != nil {
 		return nil, fmt.Errorf("key derivation failed: %w", err)
 	}
 	return key, nil
@@ -321,9 +320,5 @@ func ParseHexKey(hexKey string) ([]byte, error) {
 
 // FormatHexKey formats a key as a hexadecimal string.
 func FormatHexKey(key []byte) string {
-	result := make([]byte, len(key)*2)
-	for i, b := range key {
-		fmt.Sprintf(string(result[i*2:i*2+2]), "%02x", b)
-	}
 	return fmt.Sprintf("%x", key)
 }

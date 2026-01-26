@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/user/dns-as-doh/internal/crypto"
+	"github.com/AliRezaBeigy/dns-as-doh/internal/crypto"
 )
 
 // ClientCrypto wraps the crypto package for client-specific usage.
