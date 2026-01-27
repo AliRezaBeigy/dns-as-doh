@@ -1,0 +1,227 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'  # Triggers on tags like v1.0.0, v1.2.3, etc.
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            asset_name: linux-amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            asset_name: linux-arm64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm
+            asset_name: linux-arm
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            asset_name: windows-amd64
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+            asset_name: windows-arm64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            asset_name: darwin-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            asset_name: darwin-arm64
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      ASSET_NAME: ${{ matrix.asset_name }}
+      EXE_EXT: ${{ matrix.goos == 'windows' && '.exe' || '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Get version info
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # Extract tag from refs/tags/v1.0.0
+            TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${TAG#v}  # Remove 'v' prefix
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            # Get tag from release event
+            TAG="${{ github.event.release.tag_name }}"
+            VERSION=${TAG#v}  # Remove 'v' prefix
+          else
+            # For workflow_dispatch, use latest tag or require manual input
+            TAG=${GITHUB_REF#refs/tags/}
+            if [[ -z "$TAG" ]]; then
+              TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+            fi
+            VERSION=${TAG#v}
+          fi
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+          echo "Using tag: $TAG, version: $VERSION"
+
+      - name: Build client binary
+        shell: bash
+        run: |
+          mkdir -p build_assets
+          LDFLAGS="-s -w -X main.version=${{ steps.version.outputs.version }} -X main.commit=${{ steps.version.outputs.commit }} -X main.date=${{ steps.version.outputs.date }}"
+          go build -ldflags "$LDFLAGS" -o build_assets/dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }} ./cmd/client
+          if [ "${{ matrix.goos }}" != "windows" ]; then 
+            chmod +x build_assets/dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}
+          fi
+
+      - name: Build server binary
+        shell: bash
+        run: |
+          LDFLAGS="-s -w -X main.version=${{ steps.version.outputs.version }} -X main.commit=${{ steps.version.outputs.commit }} -X main.date=${{ steps.version.outputs.date }}"
+          go build -ldflags "$LDFLAGS" -o build_assets/dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }} ./cmd/server
+          if [ "${{ matrix.goos }}" != "windows" ]; then 
+            chmod +x build_assets/dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}
+          fi
+
+      - name: Create checksums
+        shell: bash
+        run: |
+          cd build_assets
+          # Use shasum (available on macOS) or sha256sum (Linux) or calculate manually
+          if command -v sha256sum &> /dev/null; then
+            sha256sum dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }} > checksums.txt
+            sha256sum dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }} >> checksums.txt
+          elif command -v shasum &> /dev/null; then
+            shasum -a 256 dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }} > checksums.txt
+            shasum -a 256 dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }} >> checksums.txt
+          else
+            # Fallback: use Go to calculate SHA256
+            CLIENT_FILE="dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}"
+            SERVER_FILE="dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}"
+            go run - << EOF
+package main
+import (
+    "crypto/sha256"
+    "encoding/hex"
+    "fmt"
+    "io"
+    "os"
+)
+func main() {
+    files := []string{"$CLIENT_FILE", "$SERVER_FILE"}
+    for _, file := range files {
+        f, err := os.Open(file)
+        if err != nil {
+            continue
+        }
+        h := sha256.New()
+        io.Copy(h, f)
+        f.Close()
+        fmt.Printf("%s  %s\n", hex.EncodeToString(h.Sum(nil)), file)
+    }
+}
+EOF
+          fi
+          cat checksums.txt
+
+      - name: Create Release (if pushing tag)
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## DNS-as-DoH ${{ steps.version.outputs.version }}
+            
+            ### Downloads
+            
+            **Client:**
+            - `dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}`
+            
+            **Server:**
+            - `dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}`
+            
+            ### Installation
+            
+            **One-click installation:**
+            ```bash
+            sudo bash <(curl -Ls https://raw.githubusercontent.com/AliRezaBeigy/dns-as-doh/${{ steps.version.outputs.tag }}/scripts/deploy.sh)
+            ```
+            
+            **Manual installation:**
+            ```bash
+            # Download and extract
+            tar -xzf dns-as-doh-*.tar.gz
+            
+            # Install
+            sudo ./scripts/install.sh install-client ./dist/dns-as-doh-client <domain> <key>
+            ```
+            
+            ### Checksums
+            See checksums.txt for SHA256 hashes.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload client binary to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build_assets/dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}
+          asset_name: dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}
+          tag: ${{ steps.version.outputs.tag }}
+          overwrite: true
+
+      - name: Upload server binary to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build_assets/dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}
+          asset_name: dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}
+          tag: ${{ steps.version.outputs.tag }}
+          overwrite: true
+
+      - name: Upload checksums to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build_assets/checksums.txt
+          asset_name: checksums-${{ env.ASSET_NAME }}.txt
+          tag: ${{ steps.version.outputs.tag }}
+          overwrite: true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dns-as-doh-${{ env.ASSET_NAME }}
+          path: build_assets/*
+          retention-days: 7
