@@ -38,6 +38,13 @@ Yes, it's DNS-over-DNS-over-DNS. Yes, it's recursive. Yes, I know it's a bit sil
 sudo bash <(curl -Ls https://raw.githubusercontent.com/AliRezaBeigy/dns-as-doh/master/scripts/deploy.sh)
 ```
 
+**For Windows (Client or Server):**
+```powershell
+powershell -ExecutionPolicy Bypass -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/AliRezaBeigy/dns-as-doh/master/scripts/deploy.ps1' -UseBasicParsing | Invoke-Expression}"
+```
+
+**Note:** Windows installation requires Administrator privileges.
+
 ### Manual Installation
 
 #### Prerequisites

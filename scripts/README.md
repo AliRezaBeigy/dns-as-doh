@@ -64,7 +64,7 @@ sudo ./scripts/install.sh install-server ./dist/dns-as-doh-server t.example.com 
 ```
 
 ### `deploy.sh`
-One-click deployment script. Clones the repository, builds binaries, and guides through interactive installation.
+One-click deployment script for Linux. Clones the repository, builds binaries, and guides through interactive installation.
 
 **Usage:**
 ```bash
@@ -87,6 +87,32 @@ sudo bash scripts/deploy.sh
 - Root/sudo access
 - Go 1.24+ installed
 - Git installed (for cloning)
+
+### `deploy.ps1`
+One-click deployment script for Windows. Clones the repository, builds binaries, and guides through interactive installation.
+
+**Usage:**
+```powershell
+powershell -ExecutionPolicy Bypass -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/AliRezaBeigy/dns-as-doh/master/scripts/deploy.ps1' -UseBasicParsing | Invoke-Expression}"
+```
+
+Or if you have the repository cloned:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\deploy.ps1
+```
+
+**Features:**
+- Automatically clones repository if needed
+- Builds binaries
+- Interactive configuration prompts
+- Sets up Windows services
+- Generates encryption keys if needed
+
+**Requirements:**
+- Administrator privileges
+- Go 1.24+ installed
+- Git installed (for cloning)
+- PowerShell 5.1+ or PowerShell Core
 
 ## Notes
 
