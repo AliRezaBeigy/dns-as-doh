@@ -127,28 +127,28 @@ jobs:
             CLIENT_FILE="dns-as-doh-client-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}"
             SERVER_FILE="dns-as-doh-server-${{ env.ASSET_NAME }}${{ env.EXE_EXT }}"
             go run - << EOF
-package main
-import (
-    "crypto/sha256"
-    "encoding/hex"
-    "fmt"
-    "io"
-    "os"
-)
-func main() {
-    files := []string{"$CLIENT_FILE", "$SERVER_FILE"}
-    for _, file := range files {
-        f, err := os.Open(file)
-        if err != nil {
-            continue
-        }
-        h := sha256.New()
-        io.Copy(h, f)
-        f.Close()
-        fmt.Printf("%s  %s\n", hex.EncodeToString(h.Sum(nil)), file)
-    }
-}
-EOF
+          package main
+          import (
+              "crypto/sha256"
+              "encoding/hex"
+              "fmt"
+              "io"
+              "os"
+          )
+          func main() {
+              files := []string{"$CLIENT_FILE", "$SERVER_FILE"}
+              for _, file := range files {
+                  f, err := os.Open(file)
+                  if err != nil {
+                      continue
+                  }
+                  h := sha256.New()
+                  io.Copy(h, f)
+                  f.Close()
+                  fmt.Printf("%s  %s\n", hex.EncodeToString(h.Sum(nil)), file)
+              }
+          }
+          EOF
           fi
           cat checksums.txt
 
