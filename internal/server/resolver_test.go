@@ -119,6 +119,7 @@ func TestNewResolver(t *testing.T) {
 
 			if resolver == nil {
 				t.Error("Resolver is nil")
+				return
 			}
 
 			if resolver.upstream != tt.upstream {
