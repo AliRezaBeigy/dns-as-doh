@@ -516,6 +516,9 @@ func CreateQuery(name Name, qtype uint16, id uint16) *Message {
 
 // CreateResponse creates a DNS response message for a query.
 func CreateResponse(query *Message) *Message {
+	if query == nil {
+		return nil
+	}
 	resp := &Message{
 		ID:       query.ID,
 		Flags:    0x8000, // QR=1

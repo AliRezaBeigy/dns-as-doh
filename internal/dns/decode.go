@@ -74,7 +74,7 @@ func ExtractResponsePayload(msg *Message, domain Name) ([]byte, error) {
 
 // CreateTunnelResponse creates a DNS response with encoded payload.
 func CreateTunnelResponse(query *Message, domain Name, payload []byte, ttl uint32) (*Message, error) {
-	if len(query.Question) != 1 {
+	if query == nil || len(query.Question) != 1 {
 		return nil, ErrInvalidQuery
 	}
 
@@ -104,6 +104,9 @@ func CreateTunnelResponse(query *Message, domain Name, payload []byte, ttl uint3
 
 // CreateErrorResponse creates a DNS error response.
 func CreateErrorResponse(query *Message, domain Name, rcode uint16) *Message {
+	if query == nil {
+		return nil
+	}
 	resp := CreateResponse(query)
 	resp.SetRcode(rcode)
 
