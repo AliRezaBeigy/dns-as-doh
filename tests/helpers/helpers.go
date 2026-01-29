@@ -174,7 +174,7 @@ func (m *MockUpstreamDNS) handleQueries() {
 		default:
 		}
 
-		m.conn.SetReadDeadline(time.Now().Add(time.Second))
+		_ = m.conn.SetReadDeadline(time.Now().Add(time.Second))
 		n, addr, err := m.conn.ReadFromUDP(buf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
@@ -205,7 +205,7 @@ func (m *MockUpstreamDNS) handleQueries() {
 
 		// Send response
 		respData, _ := response.Marshal()
-		m.conn.WriteToUDP(respData, addr)
+		_, _ = m.conn.WriteToUDP(respData, addr)
 	}
 }
 
@@ -237,12 +237,12 @@ func SendQuery(t *testing.T, addr string, query *dns.Message, timeout time.Durat
 	}
 	defer conn.Close()
 
-	conn.SetWriteDeadline(time.Now().Add(timeout))
+	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 	if _, err := conn.Write(queryData); err != nil {
 		return nil, fmt.Errorf("failed to write: %w", err)
 	}
 
-	conn.SetReadDeadline(time.Now().Add(timeout))
+	_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	if err != nil {

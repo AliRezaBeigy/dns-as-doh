@@ -127,9 +127,9 @@ func (r *Resolver) resolveUDP(ctx context.Context, query []byte) ([]byte, error)
 
 	// Set deadline from context
 	if deadline, ok := ctx.Deadline(); ok {
-		conn.SetDeadline(deadline)
+		_ = conn.SetDeadline(deadline)
 	} else {
-		conn.SetDeadline(time.Now().Add(r.timeout))
+		_ = conn.SetDeadline(time.Now().Add(r.timeout))
 	}
 
 	// Send query
@@ -189,9 +189,9 @@ func (r *Resolver) resolveDoT(ctx context.Context, query []byte) ([]byte, error)
 
 	// Set deadline from context
 	if deadline, ok := ctx.Deadline(); ok {
-		conn.SetDeadline(deadline)
+		_ = conn.SetDeadline(deadline)
 	} else {
-		conn.SetDeadline(time.Now().Add(r.timeout))
+		_ = conn.SetDeadline(time.Now().Add(r.timeout))
 	}
 
 	// Send length-prefixed query (TCP DNS format)

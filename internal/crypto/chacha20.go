@@ -57,7 +57,6 @@ type Cipher struct {
 	encryptKey []byte
 	decryptKey []byte
 	counter    uint64
-	mu         sync.Mutex
 }
 
 // NewCipher creates a new Cipher from a shared secret.

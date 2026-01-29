@@ -130,7 +130,7 @@ func (t *Transport) queryResolver(ctx context.Context, resolver string, query []
 	// Set deadlines based on context
 	deadline, ok := ctx.Deadline()
 	if ok {
-		conn.SetDeadline(deadline)
+		_ = conn.SetDeadline(deadline)
 	}
 
 	// Send query
@@ -212,7 +212,7 @@ func (af *AntiFingerprint) RandomDelay() time.Duration {
 	}
 
 	var randBytes [8]byte
-	rand.Read(randBytes[:])
+	_, _ = rand.Read(randBytes[:])
 	randVal := uint64(randBytes[0])<<56 | uint64(randBytes[1])<<48 |
 		uint64(randBytes[2])<<40 | uint64(randBytes[3])<<32 |
 		uint64(randBytes[4])<<24 | uint64(randBytes[5])<<16 |
@@ -236,7 +236,7 @@ func (af *AntiFingerprint) ApplyDelay(ctx context.Context) error {
 // RandomizePort generates a random UDP source port.
 func RandomizePort() int {
 	var buf [2]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 	// Use ephemeral port range (49152-65535)
 	port := int(buf[0])<<8 | int(buf[1])
 	return 49152 + (port % 16384)
@@ -291,7 +291,7 @@ func (dq *DummyQueryGenerator) generateLoop() {
 			return
 		case <-ticker.C:
 			// Add some jitter
-			af.ApplyDelay(dq.ctx)
+			_ = af.ApplyDelay(dq.ctx)
 
 			// Generate a dummy query
 			dq.sendDummyQuery()
@@ -307,7 +307,7 @@ func (dq *DummyQueryGenerator) sendDummyQuery() {
 
 	// Select random domain
 	var buf [1]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 	domain := dq.domains[int(buf[0])%len(dq.domains)]
 
 	// Create a simple A query
@@ -328,5 +328,5 @@ func (dq *DummyQueryGenerator) sendDummyQuery() {
 	ctx, cancel := context.WithTimeout(dq.ctx, time.Second)
 	defer cancel()
 
-	dq.transport.Query(ctx, data)
+	_, _ = dq.transport.Query(ctx, data)
 }

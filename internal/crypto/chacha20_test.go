@@ -240,7 +240,10 @@ func TestGenerateKey(t *testing.T) {
 	}
 
 	// Generate another key and verify they're different
-	key2, _ := GenerateKey()
+	key2, err := GenerateKey()
+	if err != nil {
+		t.Fatalf("GenerateKey() second call error = %v", err)
+	}
 	if bytes.Equal(key1, key2) {
 		t.Error("Generated keys should be different")
 	}

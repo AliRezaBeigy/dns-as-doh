@@ -21,7 +21,6 @@ type AntiFingerprinting struct {
 	minDelay time.Duration
 	maxDelay time.Duration
 	enabled  bool
-	dummyGen *DummyQueryGenerator
 }
 
 // AntiFingerConfig holds anti-fingerprinting configuration.
@@ -90,18 +89,18 @@ func (af *AntiFingerprinting) GetRandomPadding(min, max int) []byte {
 	}
 
 	var randByte [1]byte
-	rand.Read(randByte[:])
+	_, _ = rand.Read(randByte[:])
 	size := min + int(randByte[0])%(max-min+1)
 
 	padding := make([]byte, size)
-	rand.Read(padding)
+	_, _ = rand.Read(padding)
 	return padding
 }
 
 // randomUint64 generates a random uint64.
 func randomUint64() uint64 {
 	var buf [8]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 	return uint64(buf[0])<<56 | uint64(buf[1])<<48 |
 		uint64(buf[2])<<40 | uint64(buf[3])<<32 |
 		uint64(buf[4])<<24 | uint64(buf[5])<<16 |
@@ -112,7 +111,7 @@ func randomUint64() uint64 {
 // This helps avoid patterns of always using TXT queries.
 func RandomizeQueryType() uint16 {
 	var buf [1]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 
 	// 80% TXT, 10% A, 10% AAAA
 	switch {
@@ -132,7 +131,7 @@ func (af *AntiFingerprinting) ShouldSendDummy() bool {
 	}
 
 	var buf [1]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 
 	// 5% chance to send dummy
 	return buf[0] < 13
@@ -147,7 +146,7 @@ func ObfuscateSize(data []byte, minSize, maxSize int) []byte {
 	targetSize := minSize
 	if maxSize > minSize {
 		var buf [1]byte
-		rand.Read(buf[:])
+		_, _ = rand.Read(buf[:])
 		targetSize = minSize + int(buf[0])%(maxSize-minSize+1)
 	}
 
@@ -158,14 +157,14 @@ func ObfuscateSize(data []byte, minSize, maxSize int) []byte {
 	result := make([]byte, targetSize)
 	copy(result, data)
 	// Fill rest with random data
-	rand.Read(result[len(data):])
+	_, _ = rand.Read(result[len(data):])
 	return result
 }
 
 // VaryTTL returns a randomized TTL value within realistic bounds.
 func VaryTTL(baseTTL uint32) uint32 {
 	var buf [2]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 
 	// Vary by ±20%
 	variance := (uint32(buf[0])<<8 | uint32(buf[1])) % (baseTTL / 5)
@@ -181,6 +180,6 @@ func VaryTTL(baseTTL uint32) uint32 {
 // VaryResponseDelay adds realistic response delay (10-100ms).
 func VaryResponseDelay() time.Duration {
 	var buf [1]byte
-	rand.Read(buf[:])
+	_, _ = rand.Read(buf[:])
 	return 10*time.Millisecond + time.Duration(buf[0])*time.Millisecond*90/255
 }

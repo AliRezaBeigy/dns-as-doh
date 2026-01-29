@@ -42,7 +42,7 @@ func GenerateTestKey() []byte {
 // RandomBytes generates random bytes of the specified length.
 func RandomBytes(n int) []byte {
 	b := make([]byte, n)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return b
 }
 

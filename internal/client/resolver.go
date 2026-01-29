@@ -151,7 +151,7 @@ func (r *Resolver) acceptLoop() {
 		}
 
 		// Set read deadline
-		r.conn.SetReadDeadline(time.Now().Add(time.Second))
+		_ = r.conn.SetReadDeadline(time.Now().Add(time.Second))
 
 		n, addr, err := r.conn.ReadFromUDP(buf)
 		if err != nil {
@@ -222,7 +222,7 @@ func (r *Resolver) handleQuery(data []byte, addr *net.UDPAddr) {
 		return
 	}
 
-	r.conn.WriteToUDP(respData, addr)
+	_, _ = r.conn.WriteToUDP(respData, addr)
 }
 
 // processTunneledQuery sends a DNS query through the tunnel.
@@ -316,5 +316,5 @@ func (r *Resolver) sendError(query *dns.Message, addr *net.UDPAddr, rcode uint16
 		return
 	}
 
-	r.conn.WriteToUDP(data, addr)
+	_, _ = r.conn.WriteToUDP(data, addr)
 }

@@ -159,7 +159,7 @@ func (h *Handler) acceptLoop() {
 		}
 
 		// Set read deadline
-		h.conn.SetReadDeadline(time.Now().Add(time.Second))
+		_ = h.conn.SetReadDeadline(time.Now().Add(time.Second))
 
 		n, addr, err := h.conn.ReadFromUDP(buf)
 		if err != nil {
@@ -248,7 +248,7 @@ func (h *Handler) handleQuery(data []byte, addr *net.UDPAddr) {
 		respData[2] |= 0x02 // Set TC bit
 	}
 
-	h.conn.WriteToUDP(respData, addr)
+	_, _ = h.conn.WriteToUDP(respData, addr)
 }
 
 // processTunnelQuery processes a tunnel query and returns the response.
@@ -278,6 +278,9 @@ func (h *Handler) processTunnelQuery(ctx context.Context, query *dns.Message) (*
 	if err != nil {
 		return nil, fmt.Errorf("upstream resolution failed: %w", err)
 	}
+	if dnsResponse == nil {
+		return nil, fmt.Errorf("upstream resolver returned nil response")
+	}
 
 	// Marshal the DNS response
 	responseData, err := dnsResponse.Marshal()
@@ -303,6 +306,9 @@ func (h *Handler) processTunnelQuery(ctx context.Context, query *dns.Message) (*
 
 // sendError sends a DNS error response.
 func (h *Handler) sendError(query *dns.Message, addr *net.UDPAddr, rcode uint16) {
+	if query == nil {
+		return
+	}
 	resp := dns.CreateErrorResponse(query, h.domain, rcode)
 
 	data, err := resp.Marshal()
@@ -310,13 +316,13 @@ func (h *Handler) sendError(query *dns.Message, addr *net.UDPAddr, rcode uint16)
 		return
 	}
 
-	h.conn.WriteToUDP(data, addr)
+	_, _ = h.conn.WriteToUDP(data, addr)
 }
 
 // varyTTL adds randomness to TTL.
 func varyTTL(baseTTL uint32) uint32 {
 	var buf [1]byte
-	crypto.GenerateKey() // Just to ensure random is initialized
+	_, _ = crypto.GenerateKey() // Just to ensure random is initialized
 	buf[0] = byte(time.Now().UnixNano())
 
 	// Vary by ±30 seconds

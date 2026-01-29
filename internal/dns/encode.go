@@ -218,7 +218,7 @@ func EncodeResponse(packets [][]byte) []byte {
 		if len(p) > 0xffff {
 			continue // Skip packets that are too large
 		}
-		binary.Write(&buf, binary.BigEndian, uint16(len(p)))
+		_ = binary.Write(&buf, binary.BigEndian, uint16(len(p)))
 		buf.Write(p)
 	}
 	return buf.Bytes()
@@ -251,6 +251,6 @@ func DecodeResponse(data []byte) ([][]byte, error) {
 // GenerateQueryID generates a random DNS query ID.
 func GenerateQueryID() uint16 {
 	var id uint16
-	binary.Read(rand.Reader, binary.BigEndian, &id)
+	_ = binary.Read(rand.Reader, binary.BigEndian, &id)
 	return id
 }

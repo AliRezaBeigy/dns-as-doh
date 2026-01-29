@@ -379,12 +379,14 @@ func (b *messageBuilder) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func (b *messageBuilder) writeName(name Name) {
+func (b *messageBuilder) writeName(name Name) error {
 	for i := range name {
 		suffix := name[i:].String()
 		if ptr, ok := b.nameCache[suffix]; ok && ptr&0x3fff == ptr {
-			binary.Write(&b.buf, binary.BigEndian, uint16(0xc000|ptr))
-			return
+			if err := binary.Write(&b.buf, binary.BigEndian, uint16(0xc000|ptr)); err != nil {
+				return err
+			}
+			return nil
 		}
 
 		b.nameCache[suffix] = b.buf.Len()
@@ -393,25 +395,40 @@ func (b *messageBuilder) writeName(name Name) {
 		b.buf.Write(name[i])
 	}
 	b.buf.WriteByte(0)
+	return nil
 }
 
-func (b *messageBuilder) writeQuestion(q *Question) {
-	b.writeName(q.Name)
-	binary.Write(&b.buf, binary.BigEndian, q.Type)
-	binary.Write(&b.buf, binary.BigEndian, q.Class)
+func (b *messageBuilder) writeQuestion(q *Question) error {
+	if err := b.writeName(q.Name); err != nil {
+		return err
+	}
+	if err := binary.Write(&b.buf, binary.BigEndian, q.Type); err != nil {
+		return err
+	}
+	return binary.Write(&b.buf, binary.BigEndian, q.Class)
 }
 
 func (b *messageBuilder) writeRR(rr *RR) error {
-	b.writeName(rr.Name)
-	binary.Write(&b.buf, binary.BigEndian, rr.Type)
-	binary.Write(&b.buf, binary.BigEndian, rr.Class)
-	binary.Write(&b.buf, binary.BigEndian, rr.TTL)
+	if err := b.writeName(rr.Name); err != nil {
+		return err
+	}
+	if err := binary.Write(&b.buf, binary.BigEndian, rr.Type); err != nil {
+		return err
+	}
+	if err := binary.Write(&b.buf, binary.BigEndian, rr.Class); err != nil {
+		return err
+	}
+	if err := binary.Write(&b.buf, binary.BigEndian, rr.TTL); err != nil {
+		return err
+	}
 
 	rdLength := uint16(len(rr.Data))
 	if int(rdLength) != len(rr.Data) {
 		return ErrIntegerOverflow
 	}
-	binary.Write(&b.buf, binary.BigEndian, rdLength)
+	if err := binary.Write(&b.buf, binary.BigEndian, rdLength); err != nil {
+		return err
+	}
 	b.buf.Write(rr.Data)
 	return nil
 }
@@ -420,8 +437,12 @@ func (b *messageBuilder) writeRR(rr *RR) error {
 func (m *Message) Marshal() ([]byte, error) {
 	b := newMessageBuilder()
 
-	binary.Write(&b.buf, binary.BigEndian, m.ID)
-	binary.Write(&b.buf, binary.BigEndian, m.Flags)
+	if err := binary.Write(&b.buf, binary.BigEndian, m.ID); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&b.buf, binary.BigEndian, m.Flags); err != nil {
+		return nil, err
+	}
 
 	counts := []int{len(m.Question), len(m.Answer), len(m.Authority), len(m.Additional)}
 	for _, count := range counts {
@@ -429,11 +450,15 @@ func (m *Message) Marshal() ([]byte, error) {
 		if int(c) != count {
 			return nil, ErrIntegerOverflow
 		}
-		binary.Write(&b.buf, binary.BigEndian, c)
+		if err := binary.Write(&b.buf, binary.BigEndian, c); err != nil {
+			return nil, err
+		}
 	}
 
 	for i := range m.Question {
-		b.writeQuestion(&m.Question[i])
+		if err := b.writeQuestion(&m.Question[i]); err != nil {
+			return nil, err
+		}
 	}
 
 	for _, rrs := range [][]RR{m.Answer, m.Authority, m.Additional} {

@@ -108,11 +108,11 @@ func Install(name, displayName string, args []string) error {
 
 // Uninstall uninstalls the service on Linux.
 func Uninstall(name string) error {
-	// Stop service if running
-	exec.Command("systemctl", "stop", name).Run()
+	// Stop service if running (best-effort; may fail if not running)
+	_ = exec.Command("systemctl", "stop", name).Run()
 
-	// Disable service
-	exec.Command("systemctl", "disable", name).Run()
+	// Disable service (best-effort)
+	_ = exec.Command("systemctl", "disable", name).Run()
 
 	// Remove service file
 	servicePath := fmt.Sprintf("/etc/systemd/system/%s.service", name)

@@ -234,7 +234,9 @@ func TestClientServerEncryption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
-	serverHandler.Start()
+	if err := serverHandler.Start(); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
 	defer serverHandler.Stop()
 
 	time.Sleep(100 * time.Millisecond)
@@ -253,7 +255,9 @@ func TestClientServerEncryption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	clientResolver.Start()
+	if err := clientResolver.Start(); err != nil {
+		t.Fatalf("Failed to start client: %v", err)
+	}
 	defer clientResolver.Stop()
 
 	time.Sleep(100 * time.Millisecond)
